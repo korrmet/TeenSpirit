@@ -5,10 +5,34 @@
 #include <limits>
 #include <regex>
 
-// TODO: implement missing lexeme rules
 // TODO: add token converters
+// TODO: make times range or modes. you should provide parsing at least .+ rule
+//       or alternative
 
 namespace uniparse {
+
+class basic_range
+{ public:
+  typedef struct { uint8_t start; uint8_t end; } pair;
+  virtual pair operator[](unsigned int pos) = 0;
+  virtual unsigned int size() = 0; };
+
+template <unsigned int V>
+class range : public basic_range
+{ public:
+  range() : count(0) {}
+
+  virtual pair operator[](unsigned int pos) override
+  { if (pos >= count || pos >= V) { pair p = { 0, 0 }; return p; }
+    return pairs[pos]; }
+
+  virtual unsigned int size() override { return count; }
+
+  range& append(uint8_t start, uint8_t end)
+  { pairs[count].start = start; pairs[count].end = end; count++;
+    return *this; }
+
+  private: pair pairs[V]; unsigned int count; };
 
 template <typename T, unsigned int V>
 class fixed_buffer
@@ -36,6 +60,8 @@ class basic_lexeme
   unsigned int stage;
   unsigned int curr_times;
   basic_lexeme* next; };
+
+enum class times_mode { equal, not_more, not_less };
 
 template <unsigned int VR, unsigned int VB>
 class lexeme : public basic_lexeme
@@ -68,33 +94,92 @@ class lexeme : public basic_lexeme
   { unsigned int count = 0;
     while (*c_str)
     { rules[count].t = rule_type::equal;
-      rules[count].d1 = *(uint8_t*)c_str;
+      rules[count].d = *(uint8_t*)c_str;
       rules[count].times = 1;
+      rules[count].mode = times_mode::equal;
       count++; c_str++; }
     rules[count].t = rule_type::no_rule;
     return *this; }
 
+  lexeme& operator()(uint8_t data, bool equal = true, unsigned int times = 1,
+                     times_mode mode = times_mode::equal)
+  { unsigned int count = 0;
+    bool found = false;
+    for (unsigned int i = 0; i < VB; i++)
+    { if (rules[i].t == rule_type::no_rule)
+      { found = true; count = i; break; } }
+
+    if (!found) { return *this; }
+
+    rules[count].d = data;
+    rules[count].t = equal ? rule_type::equal : rule_type::not_equal;
+    rules[count].times = times;
+    rules[count].mode = mode;
+
+    return *this; }
+
+  lexeme& operator()(basic_range& r, bool equal = true, unsigned int times = 1,
+                     times_mode mode = times_mode::equal)
+  { unsigned int count = 0;
+    bool found = false;
+    for (unsigned int i = 0; i < VB; i++)
+    { if (rules[i].t == rule_type::no_rule)
+      { found = true; count = i; break; } }
+
+    if (!found) { return *this; }
+
+    rules[count].r = &r;
+    rules[count].t = equal ? rule_type::range : rule_type::not_range;
+    rules[count].times = times;
+    rules[count].mode = mode;
+
+    return *this; }
+
+  lexeme& any(unsigned int times = 1, times_mode mode = times_mode::equal)
+  { unsigned int count = 0;
+    bool found = false;
+    for (unsigned int i = 0; i < VB; i++)
+    { if (rules[i].t == rule_type::no_rule)
+      { found = true; count = i; break; } }
+
+    if (!found) { return *this; }
+
+    rules[count].t = rule_type::any;
+    rules[count].times = times;
+    rules[count].mode = mode;
+
+    return *this; }
+
   private:
+  void reset_parsing() { stage = 0; curr_times = 0; tok_buf.reset(); }
+  
+  void next_stage() { curr_times = 0; stage++; }
+  
+  bool check_range(uint8_t byte)
+  { for (unsigned int i = 0; i < rules[stage].r->size(); i++)
+    { basic_range::pair p = (*rules[stage].r)[i];
+      if (byte >= p.start && byte <= p.end) { return true; } }
+    return false; }
+
+  void switch_stage(bool check_result)
+  { if (check_result)
+    { curr_times++;
+      if (curr_times >= rules[stage].times &&
+          rules[stage].mode == times_mode::equal) { next_stage(); } }
+    else
+    { if (rules[stage].mode == times_mode::equal) { reset_parsing();}
+      else { next_stage(); } } }
+
   virtual bool process(uint8_t byte) override
   { tok_buf.append(byte);
+
     switch (rules[stage].t)
-    { case rule_type::no_rule:
-      { stage = 0; curr_times = 0; tok_buf.reset();
-      } return false;
-
-      case rule_type::any:
-      { curr_times++;
-        if (curr_times >= rules[stage].times) { curr_times = 0; stage++; }
-      } break;
-
-      case rule_type::equal:
-      { if (byte == rules[stage].d1)
-        { curr_times++;
-          if (curr_times >= rules[stage].times) { curr_times = 0; stage++; } }
-        else { stage = 0; curr_times = 0; tok_buf.reset(); return false; }
-      } break;
-
-      default: break; }
+    { case rule_type::any:       switch_stage(true);                   break;
+      case rule_type::equal:     switch_stage(byte == rules[stage].d); break;
+      case rule_type::not_equal: switch_stage(byte != rules[stage].d); break;
+      case rule_type::range:     switch_stage(check_range(byte));      break;
+      case rule_type::not_range: switch_stage(!check_range(byte));     break;
+      default: reset_parsing(); return false; }
 
     if (stage >= VR || rules[stage].t == rule_type::no_rule)
     { curr_times = 0;
@@ -109,7 +194,8 @@ class lexeme : public basic_lexeme
 
   enum class rule_type { no_rule, any, equal, not_equal, range, not_range };
   typedef struct
-  { rule_type t; uint8_t d1; uint8_t d2; unsigned int times; } rule_data_t;
+  { rule_type t; uint8_t d; basic_range* r; unsigned int times;
+    times_mode mode; } rule_data_t;
   rule_data_t rules[VR]; 
   fixed_buffer<uint8_t, VB> tok_buf; };
 
@@ -137,8 +223,7 @@ class lexer
 
     return *this; }
 
-  private:
-  basic_lexeme* lexemes; };
+  private: basic_lexeme* lexemes; };
 
 class basic_grammar
 { public:
@@ -210,8 +295,7 @@ class syntaxer
 
     return *this; }
 
-  private:
-  basic_grammar* grammars; };
+  private: basic_grammar* grammars; };
 
 class parser
 { public:
