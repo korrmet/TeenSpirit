@@ -8,6 +8,9 @@
 // TODO: add token converters
 // TODO: make times range or modes. you should provide parsing at least .+ rule
 //       or alternative
+// TODO: process method should not return anything, it should update lexeme's
+//       status. lexeme status should contain "triggred" and "consumed" flags.
+//       it is need to detect garbage in parser
 
 namespace uniparse {
 
@@ -161,6 +164,7 @@ class lexeme : public basic_lexeme
       if (byte >= p.start && byte <= p.end) { return true; } }
     return false; }
 
+  // TODO: rule the times modes behavior here
   void switch_stage(bool check_result)
   { if (check_result)
     { curr_times++;
