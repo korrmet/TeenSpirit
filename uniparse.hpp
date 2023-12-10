@@ -260,6 +260,7 @@ class grammar : public basic_grammar
   virtual bool process(token_t tok) override
   { if (tokens[stage].type == tok.type)
     { tokens[stage].type = tok.type;
+      tokens[stage].size = tok.size;
       tokens[stage].ptr = &tok_buf.mem[tok_buf.count];
       for (unsigned int i = 0; i < tok.size; i++)
       { tok_buf.append(tok.ptr[i]); }

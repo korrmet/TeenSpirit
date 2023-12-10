@@ -69,7 +69,11 @@ class parser
   { std::cout << "[set]"; }
 
   static void get_var_handler(uniparse::token_t* tokens, void* obj)
-  { std::cout << "[get]"; } };
+  { std::cout << "[get ";
+    std::cout << tokens[2].size << " ";
+    for (unsigned int i = 0; i < tokens[2].size; i++)
+    { std::cout << (char)tokens[2].ptr[i]; }
+    std::cout << ']'; } };
 
 int main(int argc, char** argv)
 { std::cout << "Example of using uniparse library\n"
@@ -90,4 +94,8 @@ int main(int argc, char** argv)
 
   for (char ch : std::string("get KKND\n")) { std::cout << ch; p(ch); }
   std::cout << '\n';
+
+  for (char ch : std::string("get wtf\n")) { std::cout << ch; p(ch); }
+  std::cout << '\n';
+  
   return 0; }
