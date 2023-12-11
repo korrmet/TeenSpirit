@@ -46,6 +46,7 @@ class fixed_buffer
   fixed_buffer& reset() { count = 0; return *this; }
   fixed_buffer& append(T item)
   { if (count < V) { mem[count] = item; count++; } return *this; }
+  fixed_buffer& pop() { count--; return *this; }
 
   T mem[V];
   unsigned int count; };
@@ -194,11 +195,12 @@ class lexeme : public basic_lexeme
       
       else if (rules[stage].mode == times_mode::not_more)
       { if (curr_times > rules[stage].times) { reset_parsing(); }
-        else { if (curr_times) { next_stage(); } else { reset_parsing(); } } }
+        else { if (curr_times) { tok_buf.pop(); next_stage(); }
+               else { reset_parsing(); } } }
       
       else if (rules[stage].mode == times_mode::not_less)
       { if (curr_times < rules[stage].times) { reset_parsing(); }
-        else { next_stage(); } }
+        else { tok_buf.pop(); next_stage(); } }
       
       else { reset_parsing(); } } }
 

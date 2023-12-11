@@ -14,7 +14,7 @@ class parser
 { public:
   parser()
   { // set up lexemes
-    var_l(var_r.append('A', 'Z'), true, 3, uniparse::times_mode::not_more)
+    var_l(var_r.append('A', 'Z'), true, 3, uniparse::times_mode::not_less)
                         .token.type = token_id_t::variable;
     space_l(" ")        .token.type = token_id_t::skip;
     foo_l("foo")        .token.type = token_id_t::variable;
