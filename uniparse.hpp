@@ -3,16 +3,8 @@
 
 #include <cstdint>
 #include <limits>
-#include <regex>
-
-#include <cstdio>
 
 // TODO: add token converters
-// TODO: make times range or modes. you should provide parsing at least .+ rule
-//       or alternative
-// TODO: process method should not return anything, it should update lexeme's
-//       status. lexeme status should contain "triggred" and "consumed" flags.
-//       it is need to detect garbage in parser
 
 namespace uniparse {
 
@@ -65,8 +57,6 @@ class basic_lexeme
   void (*callback)(token_t token, void* obj);
   unsigned int stage;
   unsigned int curr_times;
-  bool triggered;
-  bool consumed;
   basic_lexeme* next; };
 
 enum class times_mode { equal, not_more, not_less };
@@ -86,8 +76,6 @@ class lexeme : public basic_lexeme
     this->callback = callback;
     this->obj = obj;
     for (rule_data_t& r : rules) { r.t = rule_type::no_rule; }
-    triggered = false;
-    consumed = false;
     next = nullptr; }
 
   lexeme& set_callback(void (*callback)(token_t token, void* obj),
@@ -240,9 +228,11 @@ class lexer
   void operator()(uint8_t byte)
   { basic_lexeme* iter = lexemes;
     bool triggered = false;
+    
     while (iter)
-    { if (iter->process(byte)) { triggered = true; } iter = iter->next; }
-  
+    { if (iter->process(byte)) { triggered = true; }
+      iter = iter->next; }
+
     if (triggered)
     { iter = lexemes;
       while (iter)
@@ -345,17 +335,11 @@ class parser
     return *this; }
   
   parser& operator()(basic_grammar& grammar)
-  { syntax(grammar);
-    return *this; }
+  { syntax(grammar); return *this; }
 
   private:
   static void lexeme_match(token_t token, void* obj)
-  { parser& that = *(parser*)obj;
-    std::printf("<token: %d (", token.type);
-    for (unsigned int i = 0; i < token.size; i++)
-    { std::printf("%c", (char)token.ptr[i] == '\n' ? '-' : (char)token.ptr[i]); }
-    std::printf(")/%d>", token.size);
-    that.syntax(token); }
+  { parser& that = *(parser*)obj; that.syntax(token); }
 
   lexer lexicon; syntaxer syntax; };
 
