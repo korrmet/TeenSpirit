@@ -5,6 +5,8 @@
 #include <limits>
 #include <regex>
 
+#include <cstdio>
+
 // TODO: add token converters
 // TODO: make times range or modes. you should provide parsing at least .+ rule
 //       or alternative
@@ -62,6 +64,8 @@ class basic_lexeme
   void (*callback)(token_t token, void* obj);
   unsigned int stage;
   unsigned int curr_times;
+  bool triggered;
+  bool consumed;
   basic_lexeme* next; };
 
 enum class times_mode { equal, not_more, not_less };
@@ -81,6 +85,8 @@ class lexeme : public basic_lexeme
     this->callback = callback;
     this->obj = obj;
     for (rule_data_t& r : rules) { r.t = rule_type::no_rule; }
+    triggered = false;
+    consumed = false;
     next = nullptr; }
 
   lexeme& set_callback(void (*callback)(token_t token, void* obj),
@@ -168,11 +174,33 @@ class lexeme : public basic_lexeme
   void switch_stage(bool check_result)
   { if (check_result)
     { curr_times++;
-      if (curr_times >= rules[stage].times &&
-          rules[stage].mode == times_mode::equal) { next_stage(); } }
+      
+      if (rules[stage].mode == times_mode::equal)
+      { if (curr_times < rules[stage].times) { /* do nothing */ }
+        else if (curr_times == rules[stage].times) { next_stage(); }
+        else { reset_parsing(); } }
+
+      else if (rules[stage].mode == times_mode::not_less)
+      { if (curr_times < rules[stage].times) { /* do nothing */ }
+        else { /* do nothing */ } }
+      
+      else if (rules[stage].mode == times_mode::not_more)
+      { if (curr_times > rules[stage].times) { reset_parsing(); }
+        else { /* do nothing */ } }
+      
+      else { reset_parsing(); } }
     else
-    { if (rules[stage].mode == times_mode::equal) { reset_parsing();}
-      else { next_stage(); } } }
+    { if (rules[stage].mode == times_mode::equal) { reset_parsing(); }
+      
+      else if (rules[stage].mode == times_mode::not_more)
+      { if (curr_times > rules[stage].times) { reset_parsing(); }
+        else { if (curr_times) { next_stage(); } else { reset_parsing(); } } }
+      
+      else if (rules[stage].mode == times_mode::not_less)
+      { if (curr_times < rules[stage].times) { reset_parsing(); }
+        else { next_stage(); } }
+      
+      else { reset_parsing(); } } }
 
   virtual bool process(uint8_t byte) override
   { tok_buf.append(byte);
@@ -321,6 +349,10 @@ class parser
   private:
   static void lexeme_match(token_t token, void* obj)
   { parser& that = *(parser*)obj;
+    std::printf("<token: %d (", token.type);
+    for (unsigned int i = 0; i < token.size; i++)
+    { std::printf("%c", (char)token.ptr[i] == '\n' ? '-' : (char)token.ptr[i]); }
+    std::printf(")/%d>", token.size);
     that.syntax(token); }
 
   lexer lexicon; syntaxer syntax; };

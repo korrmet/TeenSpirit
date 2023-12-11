@@ -14,7 +14,7 @@ class parser
 { public:
   parser()
   { // set up lexemes
-    var_l(var_r.append('A', 'Z'), true, 3, uniparse::times_mode::equal)
+    var_l(var_r.append('A', 'Z'), true, 3, uniparse::times_mode::not_more)
                         .token.type = token_id_t::variable;
     space_l(" ")        .token.type = token_id_t::skip;
     foo_l("foo")        .token.type = token_id_t::variable;
@@ -41,8 +41,17 @@ class parser
          .set_callback(get_var_handler);
 
     // register 'em all
-    main_parser(space_l)(foo_l)(bar_l)(set_l)(get_l)(enable_l)(disable_l)(end_l)
-               (var_l)(set_g)(get_g); }
+    main_parser(space_l)
+               (foo_l)
+               (bar_l)
+               (set_l)
+               (get_l)
+               (enable_l)
+               (disable_l)
+               (end_l)
+               (var_l)
+               (set_g)
+               (get_g); }
 
   void operator()(uint8_t byte) { main_parser(byte); }
 
@@ -55,7 +64,7 @@ class parser
   uniparse::lexeme<3, 3> bar_l;
   uniparse::lexeme<3, 3> set_l;
   uniparse::lexeme<3, 3> get_l;
-  uniparse::lexeme<3, 3> var_l;
+  uniparse::lexeme<3, 9> var_l;
   uniparse::lexeme<6, 6> enable_l;
   uniparse::lexeme<7, 7> disable_l;
   uniparse::lexeme<1, 1> end_l;
