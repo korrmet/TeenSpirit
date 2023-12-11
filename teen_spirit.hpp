@@ -1,12 +1,12 @@
-#ifndef UNIPARSE_HPP
-#define UNIPARSE_HPP
+#ifndef TEEN_SPIRIT_HPP
+#define TEEN_SPIRIT_HPP
 
 #include <cstdint>
 #include <limits>
 
 // TODO: add token converters
 
-namespace uniparse {
+namespace TeenSpirit {
 
 class basic_range
 { public:
@@ -345,4 +345,4 @@ class parser
 
 }
 
-#endif // UNIPARSE_HPP
+#endif // TEEN_SPIRIT_HPP
