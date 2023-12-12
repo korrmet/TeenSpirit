@@ -76,7 +76,7 @@ class cmd_parser
   TeenSpirit::grammar<7, 80> set_g;
 
   static void set_var_handler(TeenSpirit::token_t* tokens, void* obj)
-  { std::cout << "[set " << TeenSpirit::ascii::tokint2int(tokens[4])
+  { std::cout << "[set " << TeenSpirit::ascii::tokint2int(TS_ARGS(tokens[4]))
               << "]\n";  }
 
   static void get_var_handler(TeenSpirit::token_t* tokens, void* obj)

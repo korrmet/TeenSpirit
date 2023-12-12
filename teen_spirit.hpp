@@ -60,12 +60,14 @@ unsigned int pow(unsigned int base, unsigned int pow)
   for (unsigned int i = 0; i < pow; i++) { result *= base; }
   return result; }
 
-unsigned int tokint2int(token_t& tok)
-{ if (!tok.size || !tok.ptr) { return 0; }
+#define TS_ARGS(tok) (tok).ptr, (tok).size
+
+unsigned int tokint2int(uint8_t* ptr, unsigned int size)
+{ if (!size || !ptr) { return 0; }
   unsigned int result = 0;
-  for (unsigned int i = 0; i < tok.size; i++)
+  for (unsigned int i = 0; i < size; i++)
   { uint8_t num = 0;
-    switch (tok.ptr[i])
+    switch (ptr[i])
     { case '0': num = 0x00; break;
       case '1': num = 0x01; break;
       case '2': num = 0x02; break;
@@ -77,7 +79,7 @@ unsigned int tokint2int(token_t& tok)
       case '8': num = 0x08; break;
       case '9': num = 0x09; break;
       default: return 0; }
-      result += num * pow(10, tok.size - i - 1); }
+      result += num * pow(10, size - i - 1); }
   return result; }
 }
 
