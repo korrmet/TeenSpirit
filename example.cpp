@@ -10,9 +10,12 @@ class cmd_parser
   cmd_parser()
   { // set up lexemes
 
+    // BUG:
     // space_l(' ',
     //         TS_EQUAL, TS_REPEAT_TIMES(1), TeenSpirit::times_mode::not_less)
     //        .token.type = token_id_t::skip;
+
+    // WORKAROUND:
     space_l(" ").token.type = token_id_t::skip;
 
     get_cmd_l("get").token.type = token_id_t::command;
