@@ -1,21 +1,35 @@
 #include <iostream>
 #include <cstring>
+// #define TS_DEBUG
 #include "teen_spirit.hpp"
 
-class parser
+// BUG: skips are not handled properly
+// BUG: there is concurrency problem between lexemes in parser
+
+class cmd_parser
 { public:
-  parser()
+  cmd_parser()
   { // set up lexemes
-    var_l(var_r.append('A', 'Z'), true, 1, TeenSpirit::times_mode::not_less)
-                        .token.type = token_id_t::variable;
-    space_l(" ")        .token.type = token_id_t::skip;
-    foo_l("foo")        .token.type = token_id_t::variable;
-    bar_l("bar")        .token.type = token_id_t::variable;
-    set_l("set")        .token.type = token_id_t::command;
-    get_l("get")        .token.type = token_id_t::command;
-    enable_l("enable")  .token.type = token_id_t::value;
-    disable_l("disable").token.type = token_id_t::value;
-    end_l("\n")         .token.type = token_id_t::end;
+
+    // space_l(' ',
+    //         TS_EQUAL, TS_REPEAT_TIMES(1), TeenSpirit::times_mode::not_less)
+    //        .token.type = token_id_t::skip;
+    space_l(" ").token.type = token_id_t::skip;
+
+    cmd_l(cmd_r.append('a', 'z'),
+          TS_EQUAL, TS_REPEAT_TIMES(1), TeenSpirit::times_mode::not_less)
+         .token.type = token_id_t::command;
+    
+    name_l(name_r.append('A', 'Z'),
+           TS_EQUAL, TS_REPEAT_TIMES(1), TeenSpirit::times_mode::not_less)
+          .token.type = token_id_t::variable;
+
+    value_l('#')
+           (value_r.append('0', '9').append('a', 'f').append('A', 'F'),
+            TS_EQUAL, TS_REPEAT_TIMES(1), TeenSpirit::times_mode::not_less)
+           .token.type = token_id_t::value;
+
+    end_l("\n").token.type = token_id_t::end;
 
     // set up grammars
     set_g(token_id_t::command)
@@ -24,72 +38,50 @@ class parser
          (token_id_t::skip)
          (token_id_t::value)
          (token_id_t::end)
-         .set_callback(set_var_handler);
+         .set_callback(set_var_handler, this);
 
     get_g(token_id_t::command)
          (token_id_t::skip)
          (token_id_t::variable)
          (token_id_t::end)
-         .set_callback(get_var_handler);
+         .set_callback(get_var_handler, this);
 
-    // register 'em all
-    // WARNING: order is important!
-    main_parser(space_l)(foo_l)(bar_l)(set_l)(get_l) (enable_l) (disable_l)
-               (var_l)(end_l)
-               (set_g)(get_g); }
+    // register 'em all in the parser (order is important!)
+    parser(cmd_l)(name_l)(value_l)(space_l)(end_l)(set_g)(get_g); }
 
-  void operator()(uint8_t byte) { main_parser(byte); }
+  void operator()(uint8_t byte) { parser(byte); }
 
   private:
+  TeenSpirit::parser parser;
+
   typedef enum { skip = 1, command, variable, value, end } token_id_t;
-  TeenSpirit::range<1> var_r;
+  TeenSpirit::range<1> cmd_r;
+  TeenSpirit::range<2> name_r;
+  TeenSpirit::range<3> value_r;
 
   TeenSpirit::lexeme<1, 1> space_l;
-  TeenSpirit::lexeme<3, 3> foo_l;
-  TeenSpirit::lexeme<3, 3> bar_l;
-  TeenSpirit::lexeme<3, 3> set_l;
-  TeenSpirit::lexeme<3, 3> get_l;
-  TeenSpirit::lexeme<3, 9> var_l;
-  TeenSpirit::lexeme<6, 6> enable_l;
-  TeenSpirit::lexeme<7, 7> disable_l;
+  TeenSpirit::lexeme<1, 80> cmd_l;
+  TeenSpirit::lexeme<1, 80> name_l;
+  TeenSpirit::lexeme<3, 80> value_l;
   TeenSpirit::lexeme<1, 1> end_l;
 
   TeenSpirit::grammar<4, 80> get_g;
   TeenSpirit::grammar<6, 80> set_g;
 
-  TeenSpirit::parser main_parser;
-
   static void set_var_handler(TeenSpirit::token_t* tokens, void* obj)
   { std::cout << "[set]"; }
 
   static void get_var_handler(TeenSpirit::token_t* tokens, void* obj)
-  { std::cout << "[get ";
-    std::cout << tokens[2].size << " ";
-    for (unsigned int i = 0; i < tokens[2].size; i++)
-    { std::cout << (char)tokens[2].ptr[i]; }
-    std::cout << ']'; } };
+  { std::cout << "[get]"; }
+
+};
 
 int main(int argc, char** argv)
-{ std::cout << "Example of using uniparse library\n"
-               "Uniparse is the simple, but not so efficient replace for "
-               "tools like re2c, lex, Boost Spirit and others. "
-               "It may be used for rapid development of simple parsers.\n";
+{ cmd_parser p;
 
-  parser p;
+  std::string input = "set FOO #fc\n"
+                      "get BAR\n";
 
-  for (char ch : std::string("set foo enable\n")) { std::cout << ch; p(ch); }
-  std::cout << '\n';
-
-  for (char ch : std::string("get foo\n")) { std::cout << ch; p(ch); }
-  std::cout << '\n';
-
-  for (char ch : std::string("get FDG\n")) { std::cout << ch; p(ch); }
-  std::cout << '\n';
-
-  for (char ch : std::string("get KKND\n")) { std::cout << ch; p(ch); }
-  std::cout << '\n';
-
-  for (char ch : std::string("get wtf\n")) { std::cout << ch; p(ch); }
-  std::cout << '\n';
+  for (char ch : input) { std::cout << ch; p(ch); } std::cout << '\n';
   
   return 0; }

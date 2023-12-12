@@ -4,7 +4,12 @@
 #include <cstdint>
 #include <limits>
 
-// TODO: add token converters
+#ifdef TS_DEBUG
+#include <cstdio>
+#define TOKEN_PRINT(tok) std::printf("<%d/%d>", tok.type, tok.size)
+#else
+#define TOKEN_PRINT(tok)
+#endif
 
 namespace TeenSpirit {
 
@@ -48,6 +53,45 @@ typedef struct
   unsigned int size;
   unsigned int type; // 0 -> empty token
 } token_t;
+
+namespace ascii {
+unsigned int pow(unsigned int base, unsigned int pow)
+{ unsigned int result = 1;
+  for (unsigned int i = 0; i < pow; i++) { result *= base; }
+  return result; }
+
+unsigned int hex2int(token_t& tok)
+{ if (!tok.size || !tok.ptr) { return 0; }
+  unsigned int result = 0;
+  for (unsigned int i = 0; i < tok.size; i++)
+  { uint8_t num = 0;
+    switch (tok.ptr[i])
+    { case '0': num = 0x00; break;
+      case '1': num = 0x01; break;
+      case '2': num = 0x02; break;
+      case '3': num = 0x03; break;
+      case '4': num = 0x04; break;
+      case '5': num = 0x05; break;
+      case '6': num = 0x06; break;
+      case '7': num = 0x07; break;
+      case '8': num = 0x08; break;
+      case '9': num = 0x09; break;
+      case 'a': num = 0x0a; break;
+      case 'b': num = 0x0b; break;
+      case 'c': num = 0x0c; break;
+      case 'd': num = 0x0d; break;
+      case 'e': num = 0x0e; break;
+      case 'f': num = 0x0f; break;
+      case 'A': num = 0x0a; break;
+      case 'B': num = 0x0b; break;
+      case 'C': num = 0x0c; break;
+      case 'D': num = 0x0d; break;
+      case 'E': num = 0x0e; break;
+      case 'F': num = 0x0f; break;
+      default: return 0; }
+      result += num * pow(2, 4 * (tok.size - i - 1)); }
+  return result; }
+}
 
 class basic_lexeme
 { public:
@@ -99,6 +143,9 @@ class lexeme : public basic_lexeme
     rules[count].t = rule_type::no_rule;
     return *this; }
 
+#define TS_EQUAL true
+#define TS_NEQUAL false
+#define TS_REPEAT_TIMES(num) num
   lexeme& operator()(uint8_t data, bool equal = true, unsigned int times = 1,
                      times_mode mode = times_mode::equal)
   { unsigned int count = 0;
@@ -159,7 +206,6 @@ class lexeme : public basic_lexeme
       if (byte >= p.start && byte <= p.end) { return true; } }
     return false; }
 
-  // TODO: rule the times modes behavior here
   void switch_stage(bool check_result)
   { if (check_result)
     { curr_times++;
@@ -339,7 +385,7 @@ class parser
 
   private:
   static void lexeme_match(token_t token, void* obj)
-  { parser& that = *(parser*)obj; that.syntax(token); }
+  { TOKEN_PRINT(token); parser& that = *(parser*)obj; that.syntax(token); }
 
   lexer lexicon; syntaxer syntax; };
 
