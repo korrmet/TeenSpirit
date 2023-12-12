@@ -15,6 +15,10 @@ class cmd_parser
     //        .token.type = token_id_t::skip;
     space_l(" ").token.type = token_id_t::skip;
 
+    get_cmd_l("get").token.type = token_id_t::command;
+
+    set_cmd_l("set").token.type = token_id_t::command;
+
     cmd_l('c')('m')('d')('.')
          (cmd_r.append('A', 'Z'),
           TS_EQUAL, TS_REPEAT_TIMES(1), TeenSpirit::times_mode::not_less)
@@ -47,7 +51,8 @@ class cmd_parser
          .set_callback(get_var_handler, this);
 
     // register 'em all in the parser (order is important!)
-    parser(cmd_l)(name_l)(value_l)(space_l)(end_l)(set_g)(get_g); }
+    parser(get_cmd_l)(set_cmd_l)(cmd_l)
+          (name_l)(value_l)(space_l)(end_l)(set_g)(get_g); }
 
   void operator()(uint8_t byte) { parser(byte); }
 
@@ -61,6 +66,8 @@ class cmd_parser
 
   TeenSpirit::lexeme<1, 1> space_l;
   TeenSpirit::lexeme<5, 80> cmd_l;
+  TeenSpirit::lexeme<4, 4> get_cmd_l;
+  TeenSpirit::lexeme<4, 4> set_cmd_l;
   TeenSpirit::lexeme<5, 80> name_l;
   TeenSpirit::lexeme<5, 80> value_l;
   TeenSpirit::lexeme<1, 1> end_l;
@@ -78,10 +85,17 @@ class cmd_parser
 };
 
 int main(int argc, char** argv)
-{ cmd_parser p;
+{ std::cout << "Example o using TeenSpirit parser\n"
+  "Here you see how it parses simple configuration commands. There is 3 types "
+  "of command syntax and all of them works well.\n"
+  "Remember the SLR limitations.\n\n";
+  
+  cmd_parser p;
 
   std::string input = "cmd.SET var.FOO 123\n"
-                      "cmd.GET var.BAR\n";
+                      "cmd.GET var.BAR\n"
+                      "set var.FOO 321\n"
+                      "get var.BAR\n";
 
   for (char ch : input) { std::cout << ch; p(ch); } std::cout << '\n';
   
