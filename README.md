@@ -1,13 +1,9 @@
 # Teen Spirit
 
-This is a quite simple SLR parser. It has no perfect performance and it has
-no perfect size, but it is simple. Idea is same as in Boost.Spirit, but without
-paying so many attention to BNF.
+Simple LR(1) parser for embedded systems.
 
-This parser no need the dynamic memory, it can be fully statically defined so
-it may be useful in embedded applications.
+TeenSpirit is a simple LR(1) parser written in C++ that's inspired by Boost.Spirit. It doesn't require any dynamic memory allocation and can be used in embedded applications. The library is header-only. The programmer has full control over memory management.
 
-As it's just a little brother of Boost.Spirit, only simple SLR parser,
-it have not any lookahead logic, it have not any recursion at all, it can't
-correctly parse even infix calculator, but it perfect for parsing configuration
-files or command input.
+The library can also be used to parse command input or configuration files.
+
+The library doesn't support complex grammars like infix notation or type inference, so you may need to use a different parser for those cases. However, it provides a simple and easy-to-use interface for parsing text or even binary streams and can be a good starting point for many applications.
