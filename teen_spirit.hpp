@@ -60,7 +60,7 @@ unsigned int pow(unsigned int base, unsigned int pow)
   for (unsigned int i = 0; i < pow; i++) { result *= base; }
   return result; }
 
-unsigned int hex2int(token_t& tok)
+unsigned int tokint2int(token_t& tok)
 { if (!tok.size || !tok.ptr) { return 0; }
   unsigned int result = 0;
   for (unsigned int i = 0; i < tok.size; i++)
@@ -76,20 +76,8 @@ unsigned int hex2int(token_t& tok)
       case '7': num = 0x07; break;
       case '8': num = 0x08; break;
       case '9': num = 0x09; break;
-      case 'a': num = 0x0a; break;
-      case 'b': num = 0x0b; break;
-      case 'c': num = 0x0c; break;
-      case 'd': num = 0x0d; break;
-      case 'e': num = 0x0e; break;
-      case 'f': num = 0x0f; break;
-      case 'A': num = 0x0a; break;
-      case 'B': num = 0x0b; break;
-      case 'C': num = 0x0c; break;
-      case 'D': num = 0x0d; break;
-      case 'E': num = 0x0e; break;
-      case 'F': num = 0x0f; break;
       default: return 0; }
-      result += num * pow(2, 4 * (tok.size - i - 1)); }
+      result += num * pow(10, tok.size - i - 1); }
   return result; }
 }
 

@@ -4,7 +4,6 @@
 #include "teen_spirit.hpp"
 
 // BUG: skips are not handled properly
-// BUG: there is concurrency problem between lexemes in parser
 
 class cmd_parser
 { public:
@@ -16,16 +15,17 @@ class cmd_parser
     //        .token.type = token_id_t::skip;
     space_l(" ").token.type = token_id_t::skip;
 
-    cmd_l(cmd_r.append('a', 'z'),
+    cmd_l('c')('m')('d')('.')
+         (cmd_r.append('A', 'Z'),
           TS_EQUAL, TS_REPEAT_TIMES(1), TeenSpirit::times_mode::not_less)
          .token.type = token_id_t::command;
     
-    name_l(name_r.append('A', 'Z'),
+    name_l('v')('a')('r')('.')
+          (name_r.append('A', 'Z'),
            TS_EQUAL, TS_REPEAT_TIMES(1), TeenSpirit::times_mode::not_less)
           .token.type = token_id_t::variable;
 
-    value_l('#')
-           (value_r.append('0', '9').append('a', 'f').append('A', 'F'),
+    value_l(value_r.append('0', '9'),
             TS_EQUAL, TS_REPEAT_TIMES(1), TeenSpirit::times_mode::not_less)
            .token.type = token_id_t::value;
 
@@ -54,33 +54,34 @@ class cmd_parser
   private:
   TeenSpirit::parser parser;
 
-  typedef enum { skip = 1, command, variable, value, end } token_id_t;
+  typedef enum { skip = 1, command, variable, value, type, end } token_id_t;
   TeenSpirit::range<1> cmd_r;
   TeenSpirit::range<2> name_r;
   TeenSpirit::range<3> value_r;
 
   TeenSpirit::lexeme<1, 1> space_l;
-  TeenSpirit::lexeme<1, 80> cmd_l;
-  TeenSpirit::lexeme<1, 80> name_l;
-  TeenSpirit::lexeme<3, 80> value_l;
+  TeenSpirit::lexeme<5, 80> cmd_l;
+  TeenSpirit::lexeme<5, 80> name_l;
+  TeenSpirit::lexeme<5, 80> value_l;
   TeenSpirit::lexeme<1, 1> end_l;
 
   TeenSpirit::grammar<4, 80> get_g;
-  TeenSpirit::grammar<6, 80> set_g;
+  TeenSpirit::grammar<7, 80> set_g;
 
   static void set_var_handler(TeenSpirit::token_t* tokens, void* obj)
-  { std::cout << "[set]"; }
+  { std::cout << "[set " << TeenSpirit::ascii::tokint2int(tokens[4])
+              << "]\n";  }
 
   static void get_var_handler(TeenSpirit::token_t* tokens, void* obj)
-  { std::cout << "[get]"; }
+  { std::cout << "[get]\n"; }
 
 };
 
 int main(int argc, char** argv)
 { cmd_parser p;
 
-  std::string input = "set FOO #fc\n"
-                      "get BAR\n";
+  std::string input = "cmd.SET var.FOO 123\n"
+                      "cmd.GET var.BAR\n";
 
   for (char ch : input) { std::cout << ch; p(ch); } std::cout << '\n';
   
